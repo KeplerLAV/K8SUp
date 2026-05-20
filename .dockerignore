@@ -1,0 +1,12 @@
+# Exclut tous les dossiers bin et obj, peu importe la profondeur
+**/bin/
+**/obj/
+**/out/
+
+# Exclut les configurations d'IDE
+**/.vs/
+**/.vscode/
+
+# Exclut les fichiers Docker eux-mêmes du contexte
+**/*.dockerignore
+**/Dockerfile

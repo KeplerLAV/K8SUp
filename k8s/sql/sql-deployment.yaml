@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sql-data
+  namespace: ns-data
+spec:
+  serviceName: sql-data
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sql-data
+  template:
+    metadata:
+      labels:
+        app: sql-data
+    spec:
+      containers:
+        - name: sql-data
+          image: iptissem/sql-data-prof:1.1
+          # image: sql-data-prof:1.1
+          imagePullPolicy: IfNotPresent
+          # --- AUTOMATISATION DE LA CRÉATION DES BASES ---
+
+          # ----------------------------------------------
+          ports:
+            - containerPort: 1433
+            - containerPort: 135
+
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              value: "Pass@word"
+            - name: MSSQL_TCP_PORT
+              value: "1433"
+            - name: MSSQL_RPC_PORT
+              value: "135"
+
+          # --- READINESS = DONNÉES PRÊTES ---
+          readinessProbe:
+            exec:
+              command:
+                - /opt/mssql-tools/bin/sqlcmd
+                - -S
+                - localhost
+                - -U
+                - sa
+                - -P
+                - Pass@word
+                - -Q
+                - "SELECT 1"  
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources: 
+            requests:
+              cpu: "500m"
+              memory: "1500Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2000Mi" 
+          volumeMounts:
+            - name: sql-storage
+              mountPath: /var/opt/mssql
+
+  volumeClaimTemplates:
+    - metadata:
+        name: sql-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sql-data
+  namespace: ns-data
+spec:
+  type: ClusterIP
+  ports:
+    - name: sql-port
+      port: 1433
+      targetPort: 1433
+    - name: rpc-port
+      port: 135
+      targetPort: 135
+  selector:
+    app: sql-data

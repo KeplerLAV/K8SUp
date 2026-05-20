@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobs-api
+  namespace: projet-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jobs-api
+  template:
+    metadata:
+      labels:
+        app: jobs-api
+    spec:
+      containers:
+      - name: jobs-api
+        image: warshall/jobs-api:v2.1.0
+        imagePullPolicy: Always
+
+        command: ["/bin/sh", "-c"]
+        args: ["sleep 60; dotnet jobs.api.dll"]
+
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+
+        - name: ConnectionString
+          value: "Server=sql-data.ns-data;User Id=sa;Password=Pass@word;Database=dotnetgigs.jobs;TrustServerCertificate=True;Connect Timeout=60;"
+        - name: ApiSettings__ConnectionString
+          value: "Server=sql-data.ns-data;User Id=sa;Password=Pass@word;Database=dotnetgigs.jobs;TrustServerCertificate=True;Connect Timeout=60;"
+        - name: ApiSettings__RedisConnectionString
+          value: "redis.ns-data:6379"
+        - name: RabbitMq__Host
+          value: "rabbitmq.ns-data.svc.cluster.local"
+        - name: ApiSettings__HostRabbitmq
+          value: "rabbitmq.ns-data.svc.cluster.local"
+        - name: HostRabbitmq
+          value: "rabbitmq.ns-data.svc.cluster.local"
+
+
+        ports:
+        - containerPort: 80
+
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 70
+          periodSeconds: 10
+
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 90
+          periodSeconds: 20
+
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
+          limits:
+            cpu: "1"
+            memory: "1500Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jobs-api
+  namespace: projet-apps
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: jobs-api

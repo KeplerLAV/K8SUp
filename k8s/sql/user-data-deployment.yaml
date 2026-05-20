@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: user-data
+  namespace: ns-data
+spec:
+  serviceName: user-data
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-data
+  template:
+    metadata:
+      labels:
+        app: user-data
+    spec:
+      containers:
+      - name: user-data
+        image: redis:7-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6379
+          name: redis
+        # Persistance (optionnelle mais bien pour le rendu)
+        args: ["--appendonly", "yes"]
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: user-storage
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: user-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-data
+  namespace: ns-data
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: user-data

@@ -1,0 +1,105 @@
+# 1. PERMISSIONS RBAC (Inchangé)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-sa
+  namespace: ns-monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-role
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics", "services", "endpoints", "pods"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-role
+subjects:
+- kind: ServiceAccount
+  name: prometheus-sa
+  namespace: ns-monitoring
+---
+# 2. CONFIGURATION DNS
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: ns-monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+      - job_name: 'my-apps'
+        static_configs:
+          - targets: 
+            - 'identity-api.projet-apps.svc.cluster.local:80'
+            - 'jobs-api.projet-apps.svc.cluster.local:80'
+            - 'applicants-api.projet-apps.svc.cluster.local:80'
+            - 'webmvc.projet-apps.svc.cluster.local:80'
+---
+# 3. DEPLOYMENT (Sans affinité)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: ns-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus-sa
+      # Affinité supprimée pour le développement local
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        args:
+          - "--config.file=/etc/prometheus/prometheus.yml"
+          - "--storage.tsdb.retention.time=15d"
+        ports:
+          - containerPort: 9090
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "500Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/prometheus/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+---
+# 4. SERVICE
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: ns-monitoring
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090

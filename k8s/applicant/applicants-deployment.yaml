@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: applicants-api
+  namespace: projet-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: applicants-api
+  template:
+    metadata:
+      labels:
+        app: applicants-api
+    spec:
+      containers:
+      - name: applicants-api
+        image: warshall/applicants-api:v2.1.0
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        # On garde le sleep mais on s'assure que les probes attendent assez
+        args: ["sleep 60; dotnet applicants.api.dll"]
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+        - name: ConnectionString
+          value: "Server=sql-data.ns-data;User Id=sa;Password=Pass@word;Database=dotnetgigs.applicants;TrustServerCertificate=True;Connect Timeout=60;"
+        - name: ApiSettings__ConnectionString
+          value: "Server=sql-data.ns-data;User Id=sa;Password=Pass@word;Database=dotnetgigs.applicants;TrustServerCertificate=True;Connect Timeout=60;"
+        - name: ApiSettings__RedisConnectionString
+          value: "redis.ns-data:6379"
+        # Correction des endpoints RabbitMQ avec le FQDN complet
+        - name: RabbitMq__Host
+          value: "rabbitmq.ns-data.svc.cluster.local"
+        - name: ApiSettings__HostRabbitmq
+          value: "rabbitmq.ns-data.svc.cluster.local"
+        - name: HostRabbitmq
+          value: "rabbitmq.ns-data.svc.cluster.local"
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          # On augmente pour laisser le temps au sleep 60 + démarrage .NET
+          initialDelaySeconds: 80 
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          # Plus large que la readiness pour éviter les redémarrages abusifs
+          initialDelaySeconds: 120 
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: "500m" # Conformément à tes specs (0.5 CPU)
+            memory: "500Mi"
+          limits:
+            cpu: "1"
+            memory: "1500Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: applicants-api
+  namespace: projet-apps
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: applicants-api

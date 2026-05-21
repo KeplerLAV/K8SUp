@@ -20,8 +20,8 @@ images:
     tag: v2.0.0
 
   userData:
-  repository: redis
-  tag: 6-alpine
+    repository: redis
+    tag: 6-alpine
 
   redis:
     repository: redis
@@ -335,7 +335,7 @@ web:
 # =========================
 monitoring:
   metricsServer:
-    enabled: false
+    enabled: true
     namespace: kube-system
     kubeletInsecureTLS: true
     metricResolution: "15s"
@@ -349,7 +349,7 @@ monitoring:
         memory: "200Mi"
 
   prometheus:
-    enabled: false
+    enabled: true
     namespace: ns-monitoring
     image:
       repository: prom/prometheus
@@ -376,7 +376,7 @@ monitoring:
       port: 9090
 
   grafana:
-    enabled: false
+    enabled: true
     namespace: ns-monitoring
     image:
       repository: grafana/grafana
@@ -397,7 +397,7 @@ monitoring:
       port: 3000
 
   efk:
-    enabled: false
+    enabled: true
     namespace: ns-monitoring
 
     images:

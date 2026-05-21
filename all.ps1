@@ -102,3 +102,7 @@ Write-Host "`nConsommation des ressources :" -ForegroundColor Yellow
 try { kubectl top pods -n $NS_APP } catch { Write-Host "Metrics server non prêt, pas grave." -ForegroundColor DarkGray }
 
 Write-Host "`n✅ DÉPLOIEMENT TERMINÉ ! Teste tes URLs maintenant." -ForegroundColor Green
+
+
+# kubectl top nodes
+# kubectl top pods -n projet-apps

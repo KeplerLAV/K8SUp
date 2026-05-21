@@ -1,7 +1,7 @@
 {{- if .Values.identity.enabled -}}
 
 {{- $images := .Values.images | default dict -}}
-{{- $img := (get $images "identity") | default dict -}}
+{{- $img := index $images "identity" | default dict -}}
 
 apiVersion: apps/v1
 kind: Deployment
@@ -40,21 +40,17 @@ spec:
             - name: ApiSettings__ConnectionString
               value: {{ .Values.identity.env.connectionString | quote }}
 
-            # Redis : compat maximum (3 noms possibles) + default + trim
-                        # Redis : compat maximum (4 noms possibles)
+            # Redis : compat maximum (4 noms possibles)
             - name: RedisConnectionString
               value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
-
             - name: ApiSettings__RedisConnectionString
               value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
-
             - name: Redis__ConnectionString
               value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
-
             - name: ConnectionStrings__Redis
               value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
 
-
+            # RabbitMQ
             - name: RabbitMq__Host
               value: {{ .Values.identity.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
             - name: ApiSettings__HostRabbitmq
@@ -68,22 +64,22 @@ spec:
           readinessProbe:
             tcpSocket:
               port: {{ .Values.identity.containerPort | default 80 }}
-            # doit être > startupSleepSeconds (sinon connection refused)
-            initialDelaySeconds: {{ .Values.identity.readinessProbe.initialDelaySeconds | default 70 }}
+            # Augmenté à 85s pour donner 25s de marge au démarrage de l'app .NET après le sleep de 60s
+            initialDelaySeconds: {{ .Values.identity.readinessProbe.initialDelaySeconds | default 85 }}
             periodSeconds: {{ .Values.identity.readinessProbe.periodSeconds | default 10 }}
 
           livenessProbe:
             tcpSocket:
               port: {{ .Values.identity.containerPort | default 80 }}
-            initialDelaySeconds: {{ .Values.identity.livenessProbe.initialDelaySeconds | default 90 }}
+            initialDelaySeconds: {{ .Values.identity.livenessProbe.initialDelaySeconds | default 110 }}
             periodSeconds: {{ .Values.identity.livenessProbe.periodSeconds | default 20 }}
 
           resources:
             requests:
-              cpu: {{ .Values.identity.resources.requests.cpu | default "500m" | quote }}
-              memory: {{ .Values.identity.resources.requests.memory | default "500Mi" | quote }}
+              cpu: {{ .Values.identity.resources.requests.cpu | default "500m" }}
+              memory: {{ .Values.identity.resources.requests.memory | default "500Mi" }}
             limits:
-              cpu: {{ .Values.identity.resources.limits.cpu | default "1" | quote }}
-              memory: {{ .Values.identity.resources.limits.memory | default "1500Mi" | quote }}
+              cpu: {{ .Values.identity.resources.limits.cpu | default "1" }}
+              memory: {{ .Values.identity.resources.limits.memory | default "1500Mi" }}
 
 {{- end -}}

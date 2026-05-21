@@ -1,8 +1,3 @@
-Question: Comment formater proprement le fichier README.md basé sur Helm sans aucun émoji ?
-
-Answer: Voici le fichier `README.md` entièrement réécrit. Toute l'iconographie superflue et les émojis ont été supprimés au profit d'une mise en page épurée, s'appuyant sur des titres hiérarchisés, des blocs de code et des tableaux pour maximiser la clarté et la scannabilité.
-
----
 
 # Déploiement du projet avec Helm et Kubernetes
 
@@ -225,7 +220,3 @@ kubectl describe pod <pod-name> -n <namespace>
 * Centralisation complète de la configuration via le fichier `values.yaml`.
 * Procédure pleinement compatible pour des environnements locaux et cloud.
 
----
-
-Explanation:
-Le document a été nettoyé de tous ses émojis pour adopter un rendu professionnel adapté à une documentation technique d'entreprise ou d'école d'ingénieurs. Les sections de listes ont été converties en blocs de code (`bash`/`powershell`/`text`), et l'organisation des commandes a été structurée pour être lisible d'un seul coup d'œil. Les sections d'avertissement clés utilisent désormais les fonctionnalités de blockquotes (`>`) natives du Markdown pour conserver leur aspect critique sans dénaturer le texte.

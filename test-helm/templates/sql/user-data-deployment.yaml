@@ -23,37 +23,17 @@ spec:
     spec:
       containers:
         - name: user-data
-          image: "{{ $userDataImg.repository | default "redis" }}:{{ $userDataImg.tag | default "7-alpine" }}"
+          image: "{{ $userDataImg.repository | default "redis" }}:{{ $userDataImg.tag | default "6-alpine" }}"
           imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
 
-          securityContext:
-            runAsUser: {{ .Values.userData.securityContext.runAsUser | default 0 }}
-
           ports:
-            - containerPort: 1433
-              name: sql-port
-
-          env:
-            - name: ACCEPT_EULA
-              value: {{ .Values.userData.env.acceptEula | default "Y" | quote }}
-            - name: SA_PASSWORD
-              value: {{ .Values.userData.env.saPassword | quote }}
-            - name: MSSQL_TCP_PORT
-              value: {{ .Values.userData.env.tcpPort | default "1433" | quote }}
+            - containerPort: 6379
+              name: redis-port
 
           readinessProbe:
-            exec:
-              command:
-                - /opt/mssql-tools/bin/sqlcmd
-                - -S
-                - localhost
-                - -U
-                - sa
-                - -P
-                - {{ .Values.userData.env.saPassword | quote }}
-                - -Q
-                - "SELECT 1"
-            initialDelaySeconds: {{ .Values.userData.readinessProbe.initialDelaySeconds | default 40 }}
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: {{ .Values.userData.readinessProbe.initialDelaySeconds | default 10 }}
             periodSeconds: {{ .Values.userData.readinessProbe.periodSeconds | default 10 }}
 
           resources:
@@ -63,10 +43,6 @@ spec:
             limits:
               cpu: {{ .Values.userData.resources.limits.cpu | default "1" | quote }}
               memory: {{ .Values.userData.resources.limits.memory | default "2000Mi" | quote }}
-
-          volumeMounts:
-            - name: user-storage
-              mountPath: /var/opt/mssql
 
   volumeClaimTemplates:
     - metadata:

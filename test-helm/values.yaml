@@ -16,12 +16,12 @@ images:
     tag: v2.1.0
 
   sqlData:
-    repository: iptissem/sql-data-prof
-    tag: 1.1
+    repository: warshall/sql-data
+    tag: v2.0.0
 
   userData:
-    repository: redis
-    tag: 7-alpine
+  repository: redis
+  tag: 6-alpine
 
   redis:
     repository: redis
@@ -203,11 +203,7 @@ rabbitmq:
 # =========================
 # IDENTITY API
 # =========================
-images:
-  pullPolicy: Always
-  identity:
-    repository: warshall/identity-api
-    tag: v2.2.0
+
 
 identity:
   enabled: true
@@ -224,7 +220,7 @@ identity:
     environment: "Development"
     aspnetcoreUrls: "http://+:80"
     connectionString: "Server=user-data.ns-data;Database=Microsoft.eShopOnContainers.Services.IdentityDb;User Id=sa;Password=Pass@word;TrustServerCertificate=True;Connect Timeout=60;"
-    redisHost: "redis.ns-data.svc.cluster.local:6379"
+    redisConnectionString: "redis.ns-data.svc.cluster.local:6379"   
     rabbitmqHost: "rabbitmq.ns-data.svc.cluster.local"
 
   readinessProbe:

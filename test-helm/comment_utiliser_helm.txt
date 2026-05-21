@@ -1,0 +1,198 @@
+📦 Déploiement du projet avec Helm & Kubernetes
+
+Ce projet utilise Helm pour déployer l’ensemble de l’architecture Kubernetes (APIs, bases de données, web, messaging, monitoring).
+
+⚠️ Toutes les commandes Helm doivent être lancées depuis le dossier test-helm/.
+
+🧰 Prérequis
+Outils obligatoires sur la machine
+
+Git
+
+Kubectl
+
+Helm v3+
+
+Un cluster Kubernetes actif (Docker Desktop, Minikube, AKS…)
+
+Vérification rapide
+kubectl version --client
+helm version
+kubectl get nodes
+
+
+👉 Si kubectl get nodes répond → le cluster est prêt.
+
+📁 Structure du projet (IMPORTANT)
+Projet-Conteneurisation-et-Orchestration---YNOV-M2-/
+│
+├── test-helm/            👈 TOUJOURS se placer ici
+│   ├── Chart.yaml
+│   ├── values.yaml       👈 Configuration centrale
+│   ├── templates/
+│   └── README.md
+│
+└── autres dossiers (à ignorer pour Helm)
+
+
+❌ Ne jamais lancer Helm depuis la racine du dépôt
+✅ Toujours être dans test-helm/
+
+📂 Se placer au bon endroit
+cd Projet-Conteneurisation-et-Orchestration---YNOV-M2-/test-helm
+
+
+Vérification :
+
+ls
+
+
+Tu dois voir :
+
+Chart.yaml
+values.yaml
+templates/
+
+🚀 Déploiement pas à pas
+1️⃣ Vérifier le chart Helm
+helm lint .
+
+
+Résultat attendu :
+
+1 chart(s) linted, 0 chart(s) failed
+
+
+👉 Si ça échoue → ne pas continuer
+
+2️⃣ Générer les manifests (TEST LOCAL – recommandé)
+helm template k8s . -n projet-apps > rendered.yaml
+
+
+📌 Ce que ça fait :
+
+Génère tous les YAML Kubernetes
+
+N’applique rien au cluster
+
+Permet de vérifier les erreurs avant déploiement
+
+3️⃣ Vérifications rapides (optionnel mais conseillé)
+Select-String -Path rendered.yaml -Pattern "<no value>"
+
+
+👉 S’il n’y a aucun résultat, les templates sont OK.
+
+4️⃣ Déployer sur le cluster Kubernetes
+
+helm upgrade --install k8s . --namespace projet-apps --create-namespace
+
+helm upgrade --install k8s . \
+  --namespace projet-apps \
+  --create-namespace
+
+  si erreur lancer ces commandes une fois 
+
+  kubectl create namespace ns-data
+kubectl create namespace ns-monitoring
+
+
+
+📌 Explication :
+
+Élément	Rôle
+k8s	Nom du release Helm
+.	Chart courant
+projet-apps	Namespace applicatif
+--create-namespace	Crée le namespace si besoin
+🔍 Vérifications après déploiement
+Voir les pods
+kubectl get pods -n projet-apps
+kubectl get pods -n ns-data
+kubectl get pods -n ns-monitoring
+
+
+Tous les pods doivent finir en Running.
+
+Voir les services
+kubectl get svc -A
+
+Voir les déploiements
+kubectl get deploy -n projet-apps
+
+🌐 Accès à l’application Web
+
+Si l’ingress est activé (values.yaml) :
+
+kubectl get ingress -n projet-apps
+
+
+Puis :
+
+ouvrir un navigateur
+
+accéder à :
+
+http://localhost
+
+
+(ou le host configuré dans values.yaml)
+
+🔄 Mettre à jour le projet
+
+Après une modification de :
+
+values.yaml
+
+ou d’un fichier dans templates/
+
+Relancer :
+
+helm upgrade k8s . -n projet-apps
+
+
+👉 Kubernetes met à jour sans tout redéployer
+
+🧹 Supprimer le projet
+helm uninstall k8s -n projet-apps
+
+
+Optionnel (nettoyage complet) :
+
+kubectl delete namespace projet-apps
+kubectl delete namespace ns-data
+kubectl delete namespace ns-monitoring
+
+🧠 Règles IMPORTANTES à respecter
+✅ À faire
+
+Modifier values.yaml
+
+Lancer Helm depuis test-helm/
+
+Utiliser helm lint avant chaque déploiement
+
+❌ À ne pas faire
+
+❌ Modifier rendered.yaml
+
+❌ Modifier les YAML générés à la main
+
+❌ Lancer Helm depuis la racine du repo
+
+🆘 Dépannage rapide
+Voir les logs d’un pod
+kubectl logs <pod-name> -n <namespace>
+
+Décrire un pod
+kubectl describe pod <pod-name> -n <namespace>
+
+✅ Conclusion
+
+Un seul chart Helm
+
+Une seule commande pour déployer
+
+Configuration centralisée
+
+Compatible local & cloud

@@ -1,7 +1,7 @@
-{{- if .Values.applicants.enabled -}}
+{{- if .Values.applicants.enabled }}
 
 {{- $images := .Values.images | default dict -}}
-{{- $appImg := index $images "applicants" | default dict -}}
+{{- $appImg := get $images "applicants" | default dict -}}
 
 apiVersion: apps/v1
 kind: Deployment
@@ -41,8 +41,7 @@ spec:
           imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
 
           command: ["/bin/sh", "-c"]
-          # Correction de la casse sur le binaire .NET (Applicants.Api.dll)
-          args: ["sleep {{ .Values.applicants.startupSleepSeconds | default 60 }}; dotnet Applicants.Api.dll"]
+          args: ["sleep {{ .Values.applicants.startupSleepSeconds | default 60 }}; dotnet applicants.api.dll"]
 
           env:
             - name: ASPNETCORE_ENVIRONMENT
@@ -82,10 +81,10 @@ spec:
 
           resources:
             requests:
-              cpu: {{ .Values.applicants.resources.requests.cpu | default "500m" }}
-              memory: {{ .Values.applicants.resources.requests.memory | default "500Mi" }}
+              cpu: {{ .Values.applicants.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ .Values.applicants.resources.requests.memory | default "500Mi" | quote }}
             limits:
-              cpu: {{ .Values.applicants.resources.limits.cpu | default "1" }}
-              memory: {{ .Values.applicants.resources.limits.memory | default "1500Mi" }}
+              cpu: {{ .Values.applicants.resources.limits.cpu | default "1" | quote }}
+              memory: {{ .Values.applicants.resources.limits.memory | default "1500Mi" | quote }}
 
-{{- end -}}
+{{- end }}

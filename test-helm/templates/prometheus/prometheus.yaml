@@ -1,0 +1,112 @@
+{{- if .Values.monitoring.prometheus.enabled }}
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-sa
+  namespace: {{ .Values.monitoring.prometheus.namespace | default "ns-monitoring" }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-role
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/metrics", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-role
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: {{ .Values.monitoring.prometheus.namespace | default "ns-monitoring" }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: {{ .Values.monitoring.prometheus.namespace | default "ns-monitoring" }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.monitoring.prometheus.scrapeInterval | default "15s" }}
+    scrape_configs:
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+      - job_name: 'my-apps'
+        static_configs:
+          - targets:
+{{- range .Values.monitoring.prometheus.targets }}
+            - {{ . | quote }}
+{{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: {{ .Values.monitoring.prometheus.namespace | default "ns-monitoring" }}
+  labels:
+    app: prometheus
+spec:
+  replicas: {{ .Values.monitoring.prometheus.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus-sa
+      containers:
+        - name: prometheus
+          image: "{{ .Values.monitoring.prometheus.image.repository | default "prom/prometheus" }}:{{ .Values.monitoring.prometheus.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.monitoring.prometheus.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.retention.time={{ .Values.monitoring.prometheus.retention | default "15d" }}"
+          ports:
+            - containerPort: {{ .Values.monitoring.prometheus.port | default 9090 }}
+          resources:
+            requests:
+              cpu: {{ .Values.monitoring.prometheus.resources.requests.cpu | default "250m" | quote }}
+              memory: {{ .Values.monitoring.prometheus.resources.requests.memory | default "500Mi" | quote }}
+            limits:
+              cpu: {{ .Values.monitoring.prometheus.resources.limits.cpu | default "500m" | quote }}
+              memory: {{ .Values.monitoring.prometheus.resources.limits.memory | default "1Gi" | quote }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: {{ .Values.monitoring.prometheus.namespace | default "ns-monitoring" }}
+spec:
+  type: {{ .Values.monitoring.prometheus.service.type | default "ClusterIP" }}
+  selector:
+    app: prometheus
+  ports:
+    - protocol: TCP
+      port: {{ .Values.monitoring.prometheus.service.port | default 9090 }}
+      targetPort: {{ .Values.monitoring.prometheus.port | default 9090 }}
+
+{{- end }}

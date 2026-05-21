@@ -1,0 +1,20 @@
+{{- if .Values.sqlData.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: sql-data
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: sql-data
+spec:
+  type: {{ .Values.sqlData.service.type | default "ClusterIP" }}
+  ports:
+    - name: sql-port
+      port: {{ .Values.sqlData.service.sqlPort | default 1433 }}
+      targetPort: 1433
+    - name: rpc-port
+      port: {{ .Values.sqlData.service.rpcPort | default 135 }}
+      targetPort: 135
+  selector:
+    app: sql-data
+{{- end }}

@@ -1,0 +1,20 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: rabbitmq
+spec:
+  type: {{ .Values.rabbitmq.service.type | default "ClusterIP" }}
+  ports:
+    - name: amqp
+      port: {{ .Values.rabbitmq.service.amqpPort | default 5672 }}
+      targetPort: {{ .Values.rabbitmq.ports.amqp.containerPort | default 5672 }}
+    - name: management
+      port: {{ .Values.rabbitmq.service.managementPort | default 15672 }}
+      targetPort: {{ .Values.rabbitmq.ports.management.containerPort | default 15672 }}
+  selector:
+    app: rabbitmq
+{{- end }}

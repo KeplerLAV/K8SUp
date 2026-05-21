@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: applicants-api
+  labels:
+    app: applicants-api
+spec:
+  type: {{ .Values.applicants.service.type }}
+  ports:
+    - port: {{ .Values.applicants.service.port }}
+      targetPort: {{ .Values.applicants.service.targetPort }}
+  selector:
+    app: applicants-api

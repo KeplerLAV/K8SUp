@@ -1,0 +1,90 @@
+{{- if .Values.sqlData.enabled }}
+
+{{- $images := .Values.images | default dict -}}
+{{- $sqlDataImg := get $images "sqlData" | default dict -}}
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sql-data
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: sql-data
+spec:
+  serviceName: sql-data
+  replicas: {{ .Values.sqlData.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: sql-data
+  template:
+    metadata:
+      labels:
+        app: sql-data
+    spec:
+      containers:
+        - name: sql-data
+          image: "{{ $sqlDataImg.repository | default "iptissem/sql-data-prof" }}:{{ $sqlDataImg.tag | default "1.1" }}"
+          imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
+
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    sleep {{ .Values.sqlData.postStartSleepSeconds | default 30 }};
+                    /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P {{ .Values.sqlData.env.saPassword | quote }} -Q "IF DB_ID('{{ .Values.sqlData.initDb.name }}') IS NULL CREATE DATABASE [{{ .Values.sqlData.initDb.name }}]"
+
+          ports:
+            - containerPort: 1433
+            - containerPort: 135
+
+          env:
+            - name: ACCEPT_EULA
+              value: {{ .Values.sqlData.env.acceptEula | default "Y" | quote }}
+            - name: SA_PASSWORD
+              value: {{ .Values.sqlData.env.saPassword | quote }}
+            - name: MSSQL_TCP_PORT
+              value: {{ .Values.sqlData.env.tcpPort | default "1433" | quote }}
+            - name: MSSQL_RPC_PORT
+              value: {{ .Values.sqlData.env.rpcPort | default "135" | quote }}
+
+          readinessProbe:
+            exec:
+              command:
+                - /opt/mssql-tools/bin/sqlcmd
+                - -S
+                - localhost
+                - -U
+                - sa
+                - -P
+                - {{ .Values.sqlData.env.saPassword | quote }}
+                - -Q
+                - "SELECT 1"
+            initialDelaySeconds: {{ .Values.sqlData.readinessProbe.initialDelaySeconds | default 60 }}
+            periodSeconds: {{ .Values.sqlData.readinessProbe.periodSeconds | default 20 }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.sqlData.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ .Values.sqlData.resources.requests.memory | default "1500Mi" | quote }}
+            limits:
+              cpu: {{ .Values.sqlData.resources.limits.cpu | default "1000m" | quote }}
+              memory: {{ .Values.sqlData.resources.limits.memory | default "2000Mi" | quote }}
+
+          volumeMounts:
+            - name: sql-storage
+              mountPath: /var/opt/mssql
+
+  volumeClaimTemplates:
+    - metadata:
+        name: sql-storage
+      spec:
+        accessModes:
+          - {{ .Values.sqlData.persistence.accessMode | default "ReadWriteOnce" | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.sqlData.persistence.size | default "5Gi" | quote }}
+
+{{- end }}

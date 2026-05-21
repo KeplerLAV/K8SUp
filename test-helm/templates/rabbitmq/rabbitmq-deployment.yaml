@@ -1,0 +1,39 @@
+{{- if .Values.rabbitmq.enabled }}
+
+{{- $images := .Values.images | default dict -}}
+{{- $rabbitImg := get $images "rabbitmq" | default dict -}}
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: {{ .Values.rabbitmq.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: "{{ $rabbitImg.repository | default "rabbitmq" }}:{{ $rabbitImg.tag | default "3-management" }}"
+          imagePullPolicy: {{ $images.pullPolicy | default "IfNotPresent" }}
+
+          ports:
+            - containerPort: {{ .Values.rabbitmq.ports.amqp.containerPort | default 5672 }}
+            - containerPort: {{ .Values.rabbitmq.ports.management.containerPort | default 15672 }}
+
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: {{ .Values.rabbitmq.env.username | default "guest" | quote }}
+            - name: RABBITMQ_DEFAULT_PASS
+              value: {{ .Values.rabbitmq.env.password | default "guest" | quote }}
+
+{{- end }}

@@ -1,0 +1,21 @@
+{{- if and .Values.web.enabled .Values.web.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: webmvc-hpa
+  namespace: {{ .Values.namespaces.apps | default "projet-apps" }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: webmvc
+  minReplicas: {{ .Values.web.hpa.minReplicas | default 2 }}
+  maxReplicas: {{ .Values.web.hpa.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.web.hpa.cpuAverageUtilization | default 60 }}
+{{- end }}

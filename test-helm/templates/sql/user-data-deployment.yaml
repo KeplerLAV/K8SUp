@@ -1,0 +1,81 @@
+{{- if .Values.userData.enabled }}
+
+{{- $images := .Values.images | default dict -}}
+{{- $userDataImg := get $images "userData" | default dict -}}
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: user-data
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: user-data
+spec:
+  serviceName: user-data
+  replicas: {{ .Values.userData.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: user-data
+  template:
+    metadata:
+      labels:
+        app: user-data
+    spec:
+      containers:
+        - name: user-data
+          image: "{{ $userDataImg.repository | default "redis" }}:{{ $userDataImg.tag | default "7-alpine" }}"
+          imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
+
+          securityContext:
+            runAsUser: {{ .Values.userData.securityContext.runAsUser | default 0 }}
+
+          ports:
+            - containerPort: 1433
+              name: sql-port
+
+          env:
+            - name: ACCEPT_EULA
+              value: {{ .Values.userData.env.acceptEula | default "Y" | quote }}
+            - name: SA_PASSWORD
+              value: {{ .Values.userData.env.saPassword | quote }}
+            - name: MSSQL_TCP_PORT
+              value: {{ .Values.userData.env.tcpPort | default "1433" | quote }}
+
+          readinessProbe:
+            exec:
+              command:
+                - /opt/mssql-tools/bin/sqlcmd
+                - -S
+                - localhost
+                - -U
+                - sa
+                - -P
+                - {{ .Values.userData.env.saPassword | quote }}
+                - -Q
+                - "SELECT 1"
+            initialDelaySeconds: {{ .Values.userData.readinessProbe.initialDelaySeconds | default 40 }}
+            periodSeconds: {{ .Values.userData.readinessProbe.periodSeconds | default 10 }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.userData.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ .Values.userData.resources.requests.memory | default "2000Mi" | quote }}
+            limits:
+              cpu: {{ .Values.userData.resources.limits.cpu | default "1" | quote }}
+              memory: {{ .Values.userData.resources.limits.memory | default "2000Mi" | quote }}
+
+          volumeMounts:
+            - name: user-storage
+              mountPath: /var/opt/mssql
+
+  volumeClaimTemplates:
+    - metadata:
+        name: user-storage
+      spec:
+        accessModes:
+          - {{ .Values.userData.persistence.accessMode | default "ReadWriteOnce" | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.userData.persistence.size | default "5Gi" | quote }}
+
+{{- end }}

@@ -1,0 +1,444 @@
+# =========================
+# Namespaces
+# =========================
+namespaces:
+  data: ns-data
+  apps: projet-apps
+
+# =========================
+# Images (UN SEUL BLOC)
+# =========================
+images:
+  pullPolicy: Always
+
+  applicants:
+    repository: warshall/applicants-api
+    tag: v2.1.0
+
+  sqlData:
+    repository: iptissem/sql-data-prof
+    tag: 1.1
+
+  userData:
+    repository: redis
+    tag: 7-alpine
+
+  redis:
+    repository: redis
+    tag: 6-alpine
+
+  rabbitmq:
+    repository: rabbitmq
+    tag: 3-management
+
+  identity:
+    repository: warshall/identity-api
+    tag: v2.2.0
+
+  jobs:
+    repository: warshall/jobs-api
+    tag: v2.1.0
+
+  web:
+    repository: warshall/webmvc
+    tag: v1.0.0
+
+# =========================
+# APPLICANTS API
+# =========================
+applicants:
+  enabled: true
+  replicas: 1
+  containerPort: 80
+  startupSleepSeconds: 60
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  env:
+    environment: "Development"
+    aspnetcoreUrls: "http://+:80"
+    connectionString: "Server=sql-data.ns-data;User Id=sa;Password=Pass@word;Database=dotnetgigs.applicants;TrustServerCertificate=True;Connect Timeout=60;"
+    redisConnectionString: "redis.ns-data:6379"
+    rabbitmqHost: "rabbitmq.ns-data.svc.cluster.local"
+
+  readinessProbe:
+    initialDelaySeconds: 80
+    periodSeconds: 10
+
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 20
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "500Mi"
+    limits:
+      cpu: "1"
+      memory: "1500Mi"
+
+  affinity:
+    enabled: true
+    targetAppLabel: "sql-data"
+
+# =========================
+# SQL-DATA
+# =========================
+sqlData:
+  enabled: true
+  replicas: 1
+
+  postStartSleepSeconds: 30
+  initDb:
+    name: "Microsoft.eShopOnContainers.Services.IdentityDb"
+
+  env:
+    acceptEula: "Y"
+    saPassword: "Pass@word"
+    tcpPort: "1433"
+    rpcPort: "135"
+
+  service:
+    type: ClusterIP
+    sqlPort: 1433
+    rpcPort: 135
+
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 20
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1500Mi"
+    limits:
+      cpu: "1000m"
+      memory: "2000Mi"
+
+  persistence:
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# =========================
+# USER-DATA
+# =========================
+userData:
+  enabled: true
+  replicas: 1
+
+  securityContext:
+    runAsUser: 0
+
+  env:
+    acceptEula: "Y"
+    saPassword: "Pass@word"
+    tcpPort: "1433"
+
+  service:
+    type: ClusterIP
+    sqlPort: 1433
+
+  readinessProbe:
+    initialDelaySeconds: 40
+    periodSeconds: 10
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "2000Mi"
+    limits:
+      cpu: "1"
+      memory: "2000Mi"
+
+  persistence:
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# =========================
+# REDIS
+# =========================
+redis:
+  enabled: true
+  replicas: 1
+  containerPort: 6379
+
+  service:
+    type: ClusterIP
+    port: 6379
+    targetPort: 6379
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "100Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+# =========================
+# RABBITMQ
+# =========================
+rabbitmq:
+  enabled: true
+  replicas: 1
+
+  ports:
+    amqp:
+      containerPort: 5672
+    management:
+      containerPort: 15672
+
+  service:
+    type: ClusterIP
+    amqpPort: 5672
+    managementPort: 15672
+
+  env:
+    username: "guest"
+    password: "guest"
+
+# =========================
+# IDENTITY API
+# =========================
+images:
+  pullPolicy: Always
+  identity:
+    repository: warshall/identity-api
+    tag: v2.2.0
+
+identity:
+  enabled: true
+  replicas: 1
+  containerPort: 80
+  startupSleepSeconds: 60
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  env:
+    environment: "Development"
+    aspnetcoreUrls: "http://+:80"
+    connectionString: "Server=user-data.ns-data;Database=Microsoft.eShopOnContainers.Services.IdentityDb;User Id=sa;Password=Pass@word;TrustServerCertificate=True;Connect Timeout=60;"
+    redisHost: "redis.ns-data.svc.cluster.local:6379"
+    rabbitmqHost: "rabbitmq.ns-data.svc.cluster.local"
+
+  readinessProbe:
+    initialDelaySeconds: 70
+    periodSeconds: 10
+
+  livenessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 20
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "500Mi"
+    limits:
+      cpu: "1"
+      memory: "1500Mi"
+
+
+# =========================
+# JOBS API
+# =========================
+jobs:
+  enabled: true
+  replicas: 1
+  containerPort: 80
+  startupSleepSeconds: 60
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  env:
+    environment: "Development"
+    aspnetcoreUrls: "http://+:80"
+    connectionString: "Server=sql-data.ns-data;User Id=sa;Password=Pass@word;Database=dotnetgigs.jobs;TrustServerCertificate=True;Connect Timeout=60;"
+    redisConnectionString: "redis.ns-data.svc.cluster.local:6379"
+
+    rabbitmqHost: "rabbitmq.ns-data.svc.cluster.local"
+
+  readinessProbe:
+    initialDelaySeconds: 70
+    periodSeconds: 10
+
+  livenessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 20
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "500Mi"
+    limits:
+      cpu: "1"
+      memory: "1500Mi"
+
+# =========================
+# WEBMVC
+# =========================
+web:
+  enabled: true
+  replicas: 1
+  containerPort: 80
+
+  affinity:
+    enabled: true
+
+  env:
+    identityApiUrl: "http://identity-api.projet-apps.svc.cluster.local"
+    jobsApiUrl: "http://jobs-api.projet-apps.svc.cluster.local"
+    applicantsApiUrl: "http://applicants-api.projet-apps.svc.cluster.local"
+    environment: "Development"
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "900Mi"
+    limits:
+      cpu: "1"
+      memory: "2000Mi"
+
+  livenessProbe:
+    path: "/"
+    initialDelaySeconds: 60
+    periodSeconds: 10
+
+  # Par défaut OFF : HPA nécessite metrics-server
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    cpuAverageUtilization: 60
+
+  # Par défaut OFF : ingress nécessite un ingress controller installé
+  ingress:
+    enabled: true
+    className: "nginx"
+    sslRedirect: "true"
+    host: "localhost"
+    tlsSecretName: "webmvc-tls"
+    path: "/"
+    pathType: "Prefix"
+
+# =========================
+# MONITORING (optionnel)
+# =========================
+monitoring:
+  metricsServer:
+    enabled: false
+    namespace: kube-system
+    kubeletInsecureTLS: true
+    metricResolution: "15s"
+    image:
+      repository: registry.k8s.io/metrics-server/metrics-server
+      tag: v0.8.0
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "200Mi"
+
+  prometheus:
+    enabled: false
+    namespace: ns-monitoring
+    image:
+      repository: prom/prometheus
+      tag: latest
+      pullPolicy: IfNotPresent
+    replicas: 1
+    port: 9090
+    scrapeInterval: "15s"
+    retention: "15d"
+    targets:
+      - "identity-api.projet-apps.svc.cluster.local:80"
+      - "jobs-api.projet-apps.svc.cluster.local:80"
+      - "applicants-api.projet-apps.svc.cluster.local:80"
+      - "webmvc.projet-apps.svc.cluster.local:80"
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "500Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    service:
+      type: ClusterIP
+      port: 9090
+
+  grafana:
+    enabled: false
+    namespace: ns-monitoring
+    image:
+      repository: grafana/grafana
+      tag: latest
+      pullPolicy: IfNotPresent
+    replicas: 1
+    containerPort: 3000
+    adminPassword: "admin"
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "300m"
+        memory: "512Mi"
+    service:
+      type: ClusterIP
+      port: 3000
+
+  efk:
+    enabled: false
+    namespace: ns-monitoring
+
+    images:
+      elasticsearch:
+        repository: warshall/elasticsearch
+        tag: v2.0.0
+      kibana:
+        repository: warshall/kibana
+        tag: v2.0.0
+      fluentBit:
+        repository: warshall/fluent-bit
+        tag: v2.0.0
+      initJob:
+        repository: curlimages/curl
+        tag: latest
+
+    elasticsearch:
+      replicas: 1
+      storage: 5Gi
+      javaOpts: "-Xms512m -Xmx512m"
+      discoveryType: "single-node"
+      disableSecurity: true
+
+    kibana:
+      replicas: 1
+      containerPort: 5601
+      elasticsearchHosts: "http://elasticsearch:9200"
+
+    fluentBit:
+      # Attention: /var/lib/docker/containers marche surtout si runtime Docker
+      mountDockerContainers: true
+
+    initJob:
+      enabled: true
+
+# =========================
+# INGRESS CONTROLLER (optionnel)
+# =========================
+ingressNginx:
+  enabled: true

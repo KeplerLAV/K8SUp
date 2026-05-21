@@ -2,7 +2,7 @@
 $NS_APP  = "projet-apps"
 $NS_DATA = "ns-data"
 $NS_MON  = "ns-monitoring"
-# $NS_ING  = "ingress-nginx"
+$NS_ING  = "ingress-nginx"
 
 # Assure-toi que ces chemins sont corrects sur ton PC
 $SQL_PATH        = "k8s/sql/sql-deployment.yaml"
@@ -17,8 +17,8 @@ $EFK_PATH        = "k8s/efk/efk-stack.yaml"
 $PROM_PATH       = "k8s/prometheus/prometheus.yaml"
 $GRAF_PATH       = "k8s/grafana/grafana.yaml"
 $USER_DATA_PATH = "k8s/sql/user-data-deployment.yaml" # <--- AJOUTER CECI
-# $SECRET_PATH     = "k8s/web/secret.yaml"
-# $INGRESS_PATH    = "k8s/ingress-nginx/ingress-nginx.yaml"
+$SECRET_PATH     = "k8s/web/secret.yaml"
+$INGRESS_PATH    = "k8s/ingress-nginx/ingress-nginx.yaml"
 
 Write-Host "`n=======================================================" -ForegroundColor Cyan
 Write-Host "   DÉPLOIEMENT COMPLET : OBSERVABILITÉ + MICROSERVICES   " -ForegroundColor Cyan
@@ -50,7 +50,7 @@ kubectl apply -f $RABBIT_PATH -n $NS_DATA
 kubectl apply -f $EFK_PATH -n $NS_MON
 kubectl apply -f $PROM_PATH -n $NS_MON
 kubectl apply -f $GRAF_PATH -n $NS_MON
-# kubectl apply -f $INGRESS_PATH -n $NS_ING
+kubectl apply -f $INGRESS_PATH -n $NS_ING
 
 Write-Host "Attente de l'infrastructure critique (SQL & RabbitMQ)..." -ForegroundColor Gray
 # On attend que les pods soient 'Running'

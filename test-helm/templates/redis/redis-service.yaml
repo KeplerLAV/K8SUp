@@ -1,0 +1,16 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: redis
+spec:
+  type: {{ .Values.redis.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.redis.service.port | default 6379 }}
+      targetPort: {{ .Values.redis.service.targetPort | default 6379 }}
+  selector:
+    app: redis
+{{- end }}

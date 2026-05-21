@@ -1,0 +1,90 @@
+{{- if .Values.applicants.enabled }}
+
+{{- $images := .Values.images | default dict -}}
+{{- $appImg := get $images "applicants" | default dict -}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: applicants-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: applicants-api
+spec:
+  replicas: {{ .Values.applicants.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: applicants-api
+  template:
+    metadata:
+      labels:
+        app: applicants-api
+    spec:
+      {{- if (and .Values.applicants.affinity (eq (toString .Values.applicants.affinity.enabled) "true")) }}
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{ .Values.applicants.affinity.targetAppLabel | default "sql-data" | quote }}
+                topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+
+      containers:
+        - name: applicants-api
+          image: "{{ $appImg.repository | default "warshall/applicants-api" }}:{{ $appImg.tag | default "v2.1.0" }}"
+          imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
+
+          command: ["/bin/sh", "-c"]
+          args: ["sleep {{ .Values.applicants.startupSleepSeconds | default 60 }}; dotnet applicants.api.dll"]
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.applicants.env.environment | default "Development" | quote }}
+            - name: ASPNETCORE_URLS
+              value: {{ .Values.applicants.env.aspnetcoreUrls | default "http://+:80" | quote }}
+
+            - name: ConnectionString
+              value: {{ .Values.applicants.env.connectionString | quote }}
+            - name: ApiSettings__ConnectionString
+              value: {{ .Values.applicants.env.connectionString | quote }}
+
+            - name: ApiSettings__RedisConnectionString
+              value: {{ .Values.applicants.env.redisConnectionString | default "redis.ns-data:6379" | quote }}
+
+            - name: RabbitMq__Host
+              value: {{ .Values.applicants.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
+            - name: ApiSettings__HostRabbitmq
+              value: {{ .Values.applicants.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
+            - name: HostRabbitmq
+              value: {{ .Values.applicants.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
+
+          ports:
+            - containerPort: {{ .Values.applicants.containerPort | default 80 }}
+
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.applicants.containerPort | default 80 }}
+            initialDelaySeconds: {{ .Values.applicants.readinessProbe.initialDelaySeconds | default 80 }}
+            periodSeconds: {{ .Values.applicants.readinessProbe.periodSeconds | default 10 }}
+
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.applicants.containerPort | default 80 }}
+            initialDelaySeconds: {{ .Values.applicants.livenessProbe.initialDelaySeconds | default 120 }}
+            periodSeconds: {{ .Values.applicants.livenessProbe.periodSeconds | default 20 }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.applicants.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ .Values.applicants.resources.requests.memory | default "500Mi" | quote }}
+            limits:
+              cpu: {{ .Values.applicants.resources.limits.cpu | default "1" | quote }}
+              memory: {{ .Values.applicants.resources.limits.memory | default "1500Mi" | quote }}
+
+{{- end }}

@@ -1,0 +1,89 @@
+{{- if .Values.identity.enabled -}}
+
+{{- $images := .Values.images | default dict -}}
+{{- $img := (get $images "identity") | default dict -}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: identity-api
+spec:
+  replicas: {{ .Values.identity.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: identity-api
+  template:
+    metadata:
+      labels:
+        app: identity-api
+    spec:
+      containers:
+        - name: identity-api
+          image: "{{ $img.repository | default "warshall/identity-api" }}:{{ $img.tag | default "v2.2.0" }}"
+          imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
+
+          command: ["/bin/sh", "-c"]
+          args:
+            - "sleep {{ .Values.identity.startupSleepSeconds | default 60 }}; dotnet Identity.Api.dll"
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.identity.env.environment | default "Development" | quote }}
+            - name: ASPNETCORE_URLS
+              value: {{ .Values.identity.env.aspnetcoreUrls | default "http://+:80" | quote }}
+
+            - name: ConnectionString
+              value: {{ .Values.identity.env.connectionString | quote }}
+            - name: ApiSettings__ConnectionString
+              value: {{ .Values.identity.env.connectionString | quote }}
+
+            # Redis : compat maximum (3 noms possibles) + default + trim
+                        # Redis : compat maximum (4 noms possibles)
+            - name: RedisConnectionString
+              value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
+
+            - name: ApiSettings__RedisConnectionString
+              value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
+
+            - name: Redis__ConnectionString
+              value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
+
+            - name: ConnectionStrings__Redis
+              value: {{ .Values.identity.env.redisConnectionString | default "redis.ns-data:6379" | trim | quote }}
+
+
+            - name: RabbitMq__Host
+              value: {{ .Values.identity.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
+            - name: ApiSettings__HostRabbitmq
+              value: {{ .Values.identity.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
+            - name: HostRabbitmq
+              value: {{ .Values.identity.env.rabbitmqHost | default "rabbitmq.ns-data.svc.cluster.local" | quote }}
+
+          ports:
+            - containerPort: {{ .Values.identity.containerPort | default 80 }}
+
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.identity.containerPort | default 80 }}
+            # doit être > startupSleepSeconds (sinon connection refused)
+            initialDelaySeconds: {{ .Values.identity.readinessProbe.initialDelaySeconds | default 70 }}
+            periodSeconds: {{ .Values.identity.readinessProbe.periodSeconds | default 10 }}
+
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.identity.containerPort | default 80 }}
+            initialDelaySeconds: {{ .Values.identity.livenessProbe.initialDelaySeconds | default 90 }}
+            periodSeconds: {{ .Values.identity.livenessProbe.periodSeconds | default 20 }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.identity.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ .Values.identity.resources.requests.memory | default "500Mi" | quote }}
+            limits:
+              cpu: {{ .Values.identity.resources.limits.cpu | default "1" | quote }}
+              memory: {{ .Values.identity.resources.limits.memory | default "1500Mi" | quote }}
+
+{{- end -}}

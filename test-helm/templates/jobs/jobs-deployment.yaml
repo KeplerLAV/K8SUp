@@ -1,0 +1,75 @@
+{{- if .Values.jobs.enabled }}
+
+{{- $images := .Values.images | default dict -}}
+{{- $jobsImg := get $images "jobs" | default dict -}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobs-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: jobs-api
+spec:
+  replicas: {{ .Values.jobs.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: jobs-api
+  template:
+    metadata:
+      labels:
+        app: jobs-api
+    spec:
+      containers:
+        - name: jobs-api
+          image: "{{ $jobsImg.repository | default "warshall/jobs-api" }}:{{ $jobsImg.tag | default "v2.1.0" }}"
+          imagePullPolicy: {{ $images.pullPolicy | default "Always" }}
+
+          command: ["/bin/sh", "-c"]
+          args: ["sleep {{ .Values.jobs.startupSleepSeconds | default 60 }}; dotnet jobs.api.dll"]
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.jobs.env.environment | default "Development" | quote }}
+            - name: ASPNETCORE_URLS
+              value: {{ .Values.jobs.env.aspnetcoreUrls | default "http://+:80" | quote }}
+
+            - name: ConnectionString
+              value: {{ .Values.jobs.env.connectionString | quote }}
+            - name: ApiSettings__ConnectionString
+              value: {{ .Values.jobs.env.connectionString | quote }}
+
+            - name: ApiSettings__RedisConnectionString
+              value: {{ .Values.jobs.env.redisConnectionString | quote }}
+
+            - name: RabbitMq__Host
+              value: {{ .Values.jobs.env.rabbitmqHost | quote }}
+            - name: ApiSettings__HostRabbitmq
+              value: {{ .Values.jobs.env.rabbitmqHost | quote }}
+            - name: HostRabbitmq
+              value: {{ .Values.jobs.env.rabbitmqHost | quote }}
+
+          ports:
+            - containerPort: {{ .Values.jobs.containerPort | default 80 }}
+
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.jobs.containerPort | default 80 }}
+            initialDelaySeconds: {{ .Values.jobs.readinessProbe.initialDelaySeconds | default 70 }}
+            periodSeconds: {{ .Values.jobs.readinessProbe.periodSeconds | default 10 }}
+
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.jobs.containerPort | default 80 }}
+            initialDelaySeconds: {{ .Values.jobs.livenessProbe.initialDelaySeconds | default 90 }}
+            periodSeconds: {{ .Values.jobs.livenessProbe.periodSeconds | default 20 }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.jobs.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ .Values.jobs.resources.requests.memory | default "500Mi" | quote }}
+            limits:
+              cpu: {{ .Values.jobs.resources.limits.cpu | default "1" | quote }}
+              memory: {{ .Values.jobs.resources.limits.memory | default "1500Mi" | quote }}
+
+{{- end }}

@@ -1,0 +1,17 @@
+{{- if .Values.userData.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-data
+  namespace: {{ .Values.namespaces.data | default "ns-data" }}
+  labels:
+    app: user-data
+spec:
+  type: {{ .Values.userData.service.type | default "ClusterIP" }}
+  ports:
+    - name: sql-port
+      port: {{ .Values.userData.service.sqlPort | default 1433 }}
+      targetPort: 1433
+  selector:
+    app: user-data
+{{- end }}

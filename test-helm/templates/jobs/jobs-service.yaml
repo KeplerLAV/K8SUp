@@ -1,0 +1,16 @@
+{{- if .Values.jobs.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: jobs-api
+  namespace: {{ .Values.namespaces.apps | default "projet-apps" }}
+  labels:
+    app: jobs-api
+spec:
+  type: {{ .Values.jobs.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.jobs.service.port | default 80 }}
+      targetPort: {{ .Values.jobs.service.targetPort | default 80 }}
+  selector:
+    app: jobs-api
+{{- end }}

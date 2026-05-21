@@ -2,7 +2,7 @@ Déploiement du projet avec Helm & Kubernetes
 
 Ce projet utilise Helm pour déployer l’ensemble de l’architecture Kubernetes (APIs, bases de données, web, messaging, monitoring).
 
-Toutes les commandes Helm doivent être lancées depuis le dossier test-helm/.
+Toutes les commandes Helm doivent être lancées depuis le dossier Helm/.
 
 Prérequis
 Outils obligatoires sur la machine
@@ -26,7 +26,7 @@ Si kubectl get nodes répond → le cluster est prêt.
 Structure du projet (IMPORTANT)
 Projet-Conteneurisation-et-Orchestration---YNOV-M2-/
 │
-├── test-helm/            TOUJOURS se placer ici
+├── Helm/            TOUJOURS se placer ici
 │   ├── Chart.yaml
 │   ├── values.yaml       Configuration centrale
 │   ├── templates/
@@ -36,10 +36,10 @@ Projet-Conteneurisation-et-Orchestration---YNOV-M2-/
 
 
 Ne jamais lancer Helm depuis la racine du dépôt
-Toujours être dans test-helm/
+Toujours être dans Helm/
 
 Se placer au bon endroit
-cd Projet-Conteneurisation-et-Orchestration---YNOV-M2-/test-helm
+cd Projet-Conteneurisation-et-Orchestration---YNOV-M2-/Helm
 
 
 Vérification :
@@ -167,7 +167,7 @@ Règles IMPORTANTES à respecter
 
 Modifier values.yaml
 
-Lancer Helm depuis test-helm/
+Lancer Helm depuis Helm/
 
 Utiliser helm lint avant chaque déploiement
 
